@@ -1,0 +1,32 @@
+# 認証情報・実値（このリポジトリは public。実値は絶対にコミットしない）
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 過去履歴のCSV・取引データ（実際の取引額・残高が入る。samples/ にはダミー値だけを置く）
+/data/
+/private/
+*.csv
+!samples/*.csv
+
+# 依存・生成物
+node_modules/
+dist/
+coverage/
+*.log
+*.tsbuildinfo
+
+# Cloudflare Workers / wrangler のローカル状態
+.wrangler/
+
+# ローカルのDBファイル
+*.db
+*.sqlite
+*.sqlite3

@@ -1,0 +1,29 @@
+{
+  "name": "crypto-portfolio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "暗号資産（GMOコイン・bitbank）の残高・取引・価格を自動収集し、総額・内訳・推移・損益をスマホWebとClaude（MCP）から読める個人用システム",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check:specs": "node scripts/check-specs.js",
+    "check": "npm run lint && npm run typecheck && npm run check:specs && npm test",
+    "setup:hooks": "git config core.hooksPath .githooks"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sgmt-tmy/crypto-portfolio.git"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
+  }
+}
