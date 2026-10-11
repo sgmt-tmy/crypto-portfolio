@@ -114,6 +114,38 @@
             "ruleset `protect-main` やブランチ保護を緩める変更になっていないか",
             "変更を元に戻す手順が分かっているか"
           ]
+        },
+        {
+          "id": "irreversible.cloudflare-config",
+          "summary": "Cloudflare Worker の設定（wrangler の設定ファイル）を変更する",
+          "check": "changed_paths",
+          "paths": [
+            "**/wrangler.toml",
+            "**/wrangler.json",
+            "**/wrangler.jsonc"
+          ],
+          "rationale": "Worker の設定は、Cron の周期・バインディング（D1やSecretの割り当て）・ルートを決める。mainへのマージで自動デプロイされる（ADR 0003）ため、誤った設定はそのまま本番の挙動になる。利用側のWorkerに収集側のSecretを割り当てる変更は、認証情報の分離（APIキーはAIから分離する）を壊す。",
+          "human_check": [
+            "Cron の周期が取引所のレート制限を超えないか",
+            "利用側のWorker（Web/MCP）に、取引所のAPIキーのSecretが割り当てられていないか",
+            "バインディング（D1・Secret）の名前と割り当て先が意図どおりか"
+          ]
+        },
+        {
+          "id": "irreversible.d1-migrations",
+          "summary": "D1のマイグレーション・スキーマ設定を変更する",
+          "check": "changed_paths",
+          "paths": [
+            "migrations/**",
+            "drizzle/**",
+            "drizzle.config.ts"
+          ],
+          "rationale": "スキーマ変更は取り消しにくい。マイグレーションの本番適用は人が手動で行う（ADR 0003）が、内容は適用前に人が確認する必要がある。",
+          "human_check": [
+            "列の削除・型の変更など、データを失う変更を含んでいないか",
+            "既存データに対して適用できるか（NOT NULL の追加・デフォルト値など）",
+            "適用の順番（コードのデプロイとの前後）で壊れないか"
+          ]
         }
       ]
     },
@@ -331,6 +363,38 @@
             "gate の基準や判定を緩める変更になっていないか（ルールの削除、閾値の引き上げ、パスの除外）",
             "CLAUDE.md の禁止事項が減っていないか",
             "フックが引き続き実行されるか"
+          ]
+        },
+        {
+          "id": "security_boundary.worker-secret-references",
+          "summary": "差分の追加行で、Worker のバインディング経由のSecretを参照する",
+          "check": "changed_lines",
+          "paths": [
+            "src/**"
+          ],
+          "lines": "added",
+          "pattern": "\\benv\\.[A-Z][A-Z0-9_]*(?:_KEY|_SECRET|_TOKEN|_PASSWORD)\\b",
+          "rationale": "取引所のAPIキーなどのSecretは、Worker の `env` に渡される。Secret の読み取り口を増やす変更は、漏洩経路になりうる。`process.env` のルールでは拾えないため、Workers 向けに追加した。Secret の名前は `_KEY`・`_SECRET`・`_TOKEN`・`_PASSWORD` で終わらせる規約に頼る（D1などのバインディング `env.DB` は拾わない）。",
+          "human_check": [
+            "参照している Secret が本当に必要か。収集Workerだけが取引所のAPIキーを参照しているか",
+            "利用側のWorker（Web/MCP）のコードから、取引所のAPIキーを参照していないか",
+            "Secret の値を、ログ・エラーメッセージ・レスポンス・Issue・PRに出力していないか"
+          ]
+        },
+        {
+          "id": "security_boundary.mcp-tools",
+          "summary": "AIに公開するMCPのツール定義を変更する",
+          "check": "changed_paths",
+          "paths": [
+            "src/**/mcp/**",
+            "src/**/mcp*.ts",
+            "src/**/mcp*/**"
+          ],
+          "rationale": "MCPのツールは、AIが読めるデータと操作の境界を決める。読み取り専用・計算済みの値だけを返す（生のSQLを実行するツールは作らない）という方針を、ツールの追加・変更で崩さないために人が確認する。",
+          "human_check": [
+            "書き込み・注文・出金に当たる操作を、ツールとして公開していないか",
+            "生のSQLや任意のクエリを受け取るツールになっていないか",
+            "返す値に、APIキーやSecretなど認証に関わる情報が含まれていないか"
           ]
         }
       ]
