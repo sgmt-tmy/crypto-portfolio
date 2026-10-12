@@ -200,6 +200,55 @@ describe("各ルールの pattern / paths", () => {
   });
 });
 
+describe("Cloudflare向けのルール", () => {
+  it("Worker の設定ファイルのパスに当たり、ほかの設定には当たらない", () => {
+    const paths = ruleById("irreversible.cloudflare-config").paths ?? [];
+
+    expect(matchesAnyGlob("wrangler.toml", paths)).toBe(true);
+    expect(matchesAnyGlob("wrangler.jsonc", paths)).toBe(true);
+    expect(matchesAnyGlob("wrangler.json", paths)).toBe(true);
+    expect(matchesAnyGlob("workers/collector/wrangler.toml", paths)).toBe(true);
+    expect(matchesAnyGlob("tsconfig.json", paths)).toBe(false);
+    expect(matchesAnyGlob("src/wrangler-helper.ts", paths)).toBe(false);
+  });
+
+  it("D1のマイグレーション・スキーマ設定のパスに当たり、ほかのパスには当たらない", () => {
+    const paths = ruleById("irreversible.d1-migrations").paths ?? [];
+
+    expect(matchesAnyGlob("migrations/0001_init.sql", paths)).toBe(true);
+    expect(matchesAnyGlob("drizzle/0000_init.sql", paths)).toBe(true);
+    expect(matchesAnyGlob("drizzle/meta/_journal.json", paths)).toBe(true);
+    expect(matchesAnyGlob("drizzle.config.ts", paths)).toBe(true);
+    expect(matchesAnyGlob("src/db/schema.ts", paths)).toBe(false);
+    expect(matchesAnyGlob("docs/migrations.md", paths)).toBe(false);
+  });
+
+  it("Worker の env 経由のSecret参照に当たり、D1などのバインディングには当たらない", () => {
+    const rule = ruleById("security_boundary.worker-secret-references");
+    const pattern = patternOf("security_boundary.worker-secret-references");
+
+    expect(rule.paths).toEqual(["src/**"]);
+    expect(pattern.test("const key = env.EXCHANGE_API_KEY;")).toBe(true);
+    expect(pattern.test("const secret = c.env.EXCHANGE_API_SECRET")).toBe(true);
+    expect(pattern.test("headers: { Authorization: `Bearer ${env.MCP_TOKEN}` }")).toBe(true);
+    expect(pattern.test("if (env.ADMIN_PASSWORD) {")).toBe(true);
+    expect(pattern.test("const db = drizzle(env.DB);")).toBe(false);
+    expect(pattern.test("const apiKey = env.apiKey;")).toBe(false);
+    expect(pattern.test("const environment = 'test';")).toBe(false);
+  });
+
+  it("MCPのツール定義のパスに当たり、ほかのパスには当たらない", () => {
+    const paths = ruleById("security_boundary.mcp-tools").paths ?? [];
+
+    expect(matchesAnyGlob("src/mcp/tools.ts", paths)).toBe(true);
+    expect(matchesAnyGlob("src/api/mcp/server.ts", paths)).toBe(true);
+    expect(matchesAnyGlob("src/api/mcp.ts", paths)).toBe(true);
+    expect(matchesAnyGlob("src/mcp-server/index.ts", paths)).toBe(true);
+    expect(matchesAnyGlob("src/engine/pnl.ts", paths)).toBe(false);
+    expect(matchesAnyGlob("src/collector/bitbank.ts", paths)).toBe(false);
+  });
+});
+
 describe("globToRegExp", () => {
   it("* は / をまたがず、** はまたぐ", () => {
     expect(globToRegExp("docs/specs/*.md").test("docs/specs/group-rename.md")).toBe(true);
