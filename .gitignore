@@ -14,7 +14,7 @@
 /data/
 /private/
 *.csv
-!samples/*.csv
+!samples/**/*.csv
 
 # 依存・生成物
 node_modules/
